@@ -1,0 +1,32 @@
+name: Deploy Backend Infra
+
+on:
+  workflow_dispatch:
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: |
+          cd terraform
+          terraform init
+
+      - name: Terraform Apply
+        run: |
+          cd terraform
+          terraform apply -auto-approve \
+            -var="aws_a_access_key=${{ secrets.AWS_A_ACCESS_KEY }}" \
+            -var="aws_a_secret_key=${{ secrets.AWS_A_SECRET_KEY }}" \
+            -var="aws_b_access_key=${{ secrets.AWS_B_ACCESS_KEY }}" \
+            -var="aws_b_secret_key=${{ secrets.AWS_B_SECRET_KEY }}" \
+            -var="aws_c_access_key=${{ secrets.AWS_C_ACCESS_KEY }}" \
+            -var="aws_c_secret_key=${{ secrets.AWS_C_SECRET_KEY }}" \
+            -var="public_key=${{ secrets.PUBLIC_KEY }}"
