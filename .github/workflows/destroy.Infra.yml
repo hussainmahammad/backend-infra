@@ -1,0 +1,37 @@
+name: Destroy Infra
+
+on:
+  workflow_dispatch:
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # 🔥 IMPORTANT: backend must use Account B
+      - name: Terraform Init
+        run: |
+          cd terraform
+          terraform init \
+            -backend-config="access_key=${{ secrets.AWS_B_ACCESS_KEY }}" \
+            -backend-config="secret_key=${{ secrets.AWS_B_SECRET_KEY }}" \
+            -backend-config="region=us-east-1"
+
+      # 🚀 Destroy everything
+      - name: Terraform Destroy
+        run: |
+          cd terraform
+          terraform destroy -auto-approve \
+            -var="aws_a_access_key=${{ secrets.AWS_A_ACCESS_KEY }}" \
+            -var="aws_a_secret_key=${{ secrets.AWS_A_SECRET_KEY }}" \
+            -var="aws_b_access_key=${{ secrets.AWS_B_ACCESS_KEY }}" \
+            -var="aws_b_secret_key=${{ secrets.AWS_B_SECRET_KEY }}" \
+            -var="aws_c_access_key=${{ secrets.AWS_C_ACCESS_KEY }}" \
+            -var="aws_c_secret_key=${{ secrets.AWS_C_SECRET_KEY }}" \
+            -var="public_key=${{ secrets.PUBLIC_KEY }}"
