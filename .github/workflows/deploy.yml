@@ -14,29 +14,30 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      # STEP 1: Use Account B creds for S3 backend
-      - name: Set AWS creds for backend (Account B)
-        run: |
-          echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_B_ACCESS_KEY }}" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_B_SECRET_KEY }}" >> $GITHUB_ENV
-          echo "AWS_DEFAULT_REGION=us-east-1" >> $GITHUB_ENV
-
-      # 🔍 DEBUG: Check which account these creds belong to
+      # 🔍 DEBUG: Check backend account (Account B)
       - name: Check AWS identity (backend creds)
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_B_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_B_SECRET_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
         run: aws sts get-caller-identity
 
+      # ✅ Terraform Init (uses Account B → S3 backend)
       - name: Terraform Init
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_B_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_B_SECRET_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
         run: |
           cd terraform
           terraform init
 
-      # STEP 2: Switch to Account A creds for infra creation
-      - name: Set AWS creds for infra (Account A)
-        run: |
-          echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_A_ACCESS_KEY }}" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_A_SECRET_KEY }}" >> $GITHUB_ENV
-
+      # ✅ Terraform Apply (uses Account A → infra creation)
       - name: Terraform Apply
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_A_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_A_SECRET_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
         run: |
           cd terraform
           terraform apply -auto-approve \
