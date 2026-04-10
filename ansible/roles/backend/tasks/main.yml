@@ -1,0 +1,42 @@
+- name: Install base packages
+  apt:
+    name:
+      - git
+      - curl
+    update_cache: yes
+
+- name: Install Node.js
+  shell: |
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+    apt install -y nodejs
+  args:
+    executable: /bin/bash
+
+- name: Install PM2
+  npm:
+    name: pm2
+    global: yes
+
+- name: Create app directory
+  file:
+    path: "{{ app_dir }}"
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+
+- name: Clone or update repo
+  git:
+    repo: "{{ repo_url }}"
+    dest: "{{ app_dir }}"
+    version: "{{ branch }}"
+    force: yes
+
+- name: Install dependencies
+  npm:
+    path: "{{ app_dir }}"
+
+- name: Restart app with PM2
+  shell: |
+    pm2 delete {{ app_name }} || true
+    pm2 start {{ start_file }} --name {{ app_name }}
+    pm2 save
