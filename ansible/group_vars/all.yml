@@ -1,0 +1,7 @@
+app_name: backend
+app_dir: /opt/backend
+
+repo_url: "https://github.com/YOUR_BACKEND_REPO.git"
+branch: "main"
+
+start_file: "app.js"
