@@ -37,15 +37,21 @@ jobs:
         run: terraform init
 
       # -------------------------
-      # 4. Get EC2 IP
+      # 4. Install jq (needed for parsing)
+      # -------------------------
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      # -------------------------
+      # 5. Get EC2 IP (FIXED)
       # -------------------------
       - name: Get EC2 Public IP
         run: |
-          IP=$(terraform output -raw app_server_ip)
+          IP=$(terraform output -json | jq -r '.account_a.value.jenkins_public_ip')
           echo "EC2_IP=$IP" >> $GITHUB_ENV
 
       # -------------------------
-      # 5. Setup SSH key
+      # 6. Setup SSH key
       # -------------------------
       - name: Setup SSH Key
         run: |
@@ -54,7 +60,7 @@ jobs:
           chmod 600 ~/.ssh/key.pem
 
       # -------------------------
-      # 6. Generate Ansible Inventory
+      # 7. Generate Ansible Inventory
       # -------------------------
       - name: Generate Inventory
         run: |
@@ -62,7 +68,7 @@ jobs:
           echo "$EC2_IP ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/key.pem" >> ../ansible/inventory.ini
 
       # -------------------------
-      # 7. Install Ansible
+      # 8. Install Ansible
       # -------------------------
       - name: Install Ansible
         run: |
@@ -70,7 +76,7 @@ jobs:
           sudo apt install -y ansible
 
       # -------------------------
-      # 8. Run Deploy
+      # 9. Run Deploy
       # -------------------------
       - name: Run Ansible Deploy
         working-directory: ansible
