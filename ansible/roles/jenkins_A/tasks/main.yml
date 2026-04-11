@@ -1,14 +1,14 @@
-- name: Install Jenkins
+- name: Install Jenkins repo
   shell: |
-    curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | tee \
-      /usr/share/keyrings/jenkins-keyring.asc > /dev/null
-    echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
-      https://pkg.jenkins.io/debian-stable binary/" | tee \
-      /etc/apt/sources.list.d/jenkins.list > /dev/null
-    apt update
-    apt install -y jenkins
+    wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+    rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
   args:
     executable: /bin/bash
+
+- name: Install Jenkins
+  yum:
+    name: jenkins
+    state: present
 
 - name: Stop Jenkins
   service:
@@ -20,7 +20,7 @@
     path: /var/lib/jenkins
     state: absent
 
-# 🔥 FIXED PATH (VERY IMPORTANT)
+# 🔥 Backup copy (correct path)
 - name: Copy Jenkins backup
   copy:
     src: "{{ playbook_dir }}/../jenkins/jenkins-full-backup.tar.gz"
