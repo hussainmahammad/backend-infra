@@ -1,1 +1,48 @@
+- name: Install Java
+  apt:
+    name: openjdk-21-jdk
+    state: present
+    update_cache: yes
 
+- name: Install Jenkins
+  shell: |
+    curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | tee \
+      /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+    echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+      https://pkg.jenkins.io/debian-stable binary/" | tee \
+      /etc/apt/sources.list.d/jenkins.list > /dev/null
+    apt update
+    apt install -y jenkins
+
+- name: Stop Jenkins
+  service:
+    name: jenkins
+    state: stopped
+
+- name: Remove old Jenkins
+  file:
+    path: /var/lib/jenkins
+    state: absent
+
+- name: Copy backup
+  copy:
+    src: ../../jenkins/jenkins-full-backup.tar.gz
+    dest: /tmp/jenkins.tar.gz
+
+- name: Restore backup
+  unarchive:
+    src: /tmp/jenkins.tar.gz
+    dest: /var/lib/
+    remote_src: yes
+
+- name: Fix permissions
+  file:
+    path: /var/lib/jenkins
+    owner: jenkins
+    group: jenkins
+    recurse: yes
+
+- name: Start Jenkins
+  service:
+    name: jenkins
+    state: started
