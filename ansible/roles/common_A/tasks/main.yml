@@ -1,15 +1,15 @@
 - name: Install base packages
-  apt:
+  yum:
     name:
       - git
       - curl
       - unzip
-    update_cache: yes
+    state: present
 
 - name: Install Node.js 18
   shell: |
-    curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-    apt install -y nodejs
+    curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
+    yum install -y nodejs
   args:
     executable: /bin/bash
 
@@ -19,6 +19,6 @@
     global: yes
 
 - name: Install Java 21
-  apt:
-    name: openjdk-21-jdk
+  yum:
+    name: java-21-amazon-corretto
     state: present
