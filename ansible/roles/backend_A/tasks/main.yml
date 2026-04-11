@@ -1,22 +1,3 @@
-- name: Install base packages
-  apt:
-    name:
-      - git
-      - curl
-    update_cache: yes
-
-- name: Install Node.js
-  shell: |
-    curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-    apt install -y nodejs
-  args:
-    executable: /bin/bash
-
-- name: Install PM2
-  npm:
-    name: pm2
-    global: yes
-
 - name: Create app directory
   file:
     path: "{{ app_dir }}"
