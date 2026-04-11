@@ -1,6 +1,9 @@
-- name: Deploy Backend
+- name: Deploy Full Infra (Account A)
   hosts: app
   become: yes
 
   roles:
-    - backend
+    - common_A
+    - jenkins_A
+    - backend_A
+    - cloudflare_A
