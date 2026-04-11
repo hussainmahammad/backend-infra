@@ -1,7 +1,12 @@
 app_name: backend_A
-app_dir: /opt/backend
 
-repo_url: "https://github.com/YOUR_BACKEND_REPO.git"
+# clone full repo here
+app_dir: /opt/opt_repo
+
+repo_url: "https://github.com/hussainmahammad/opt.git"
 branch: "main"
+
+# actual app path inside repo
+backend_path: "{{ app_dir }}/apps/backend"
 
 start_file: "server.js"
