@@ -1,5 +1,5 @@
 - name: Deploy Full Infra (Account A)
-  hosts: app
+  hosts: app_A
   become: yes
 
   roles:
