@@ -1,0 +1,93 @@
+name: Deploy Account A
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # -------------------------
+      # 1. Checkout Repo
+      # -------------------------
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # -------------------------
+      # 2. Setup Terraform (READ ONLY)
+      # -------------------------
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init (read state)
+        working-directory: terraform
+        run: |
+          terraform init \
+            -backend-config="access_key=${{ secrets.AWS_B_ACCESS_KEY }}" \
+            -backend-config="secret_key=${{ secrets.AWS_B_SECRET_KEY }}" \
+            -backend-config="region=us-east-1"
+
+      # -------------------------
+      # 3. Install jq
+      # -------------------------
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      # -------------------------
+      # 4. Get EC2 Public IP (Account A)
+      # -------------------------
+      - name: Get EC2 Public IP
+        working-directory: terraform
+        run: |
+          IP=$(terraform output -json | jq -r '.account_a.value.jenkins_public_ip')
+          echo "EC2_IP=$IP" >> $GITHUB_ENV
+
+      # -------------------------
+      # 5. Setup SSH Private Key
+      # -------------------------
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PRIVATE_KEY }}" > ~/.ssh/key.pem
+          chmod 600 ~/.ssh/key.pem
+
+      # -------------------------
+      # 6. Generate Ansible Inventory
+      # -------------------------
+      - name: Generate Inventory
+        run: |
+          echo "[app_A]" > ansible/inventory.ini
+          echo "$EC2_IP ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/key.pem" >> ansible/inventory.ini
+
+      # -------------------------
+      # 7. Install Ansible
+      # -------------------------
+      - name: Install Ansible
+        run: |
+          sudo apt update
+          sudo apt install -y ansible
+
+      # -------------------------
+      # 8. Pull Git LFS (Jenkins Backup)
+      # -------------------------
+      - name: Pull Git LFS
+        run: |
+          git lfs install
+          git lfs pull
+
+      # -------------------------
+      # 9. Wait for EC2 (VERY IMPORTANT)
+      # -------------------------
+      - name: Wait for EC2 to be ready
+        run: |
+          echo "Waiting for EC2 to be ready..."
+          sleep 60
+
+      # -------------------------
+      # 10. Run Ansible Deploy
+      # -------------------------
+      - name: Run Ansible
+        working-directory: ansible
+        run: |
+          ansible-playbook deploy.yml
