@@ -1,0 +1,49 @@
+name: Create Full Infra (A B C)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: terraform
+
+    steps:
+      # -------------------------
+      # 1. Checkout Code
+      # -------------------------
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # -------------------------
+      # 2. Setup Terraform
+      # -------------------------
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # -------------------------
+      # 3. Terraform Init
+      # -------------------------
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="access_key=${{ secrets.AWS_B_ACCESS_KEY }}" \
+            -backend-config="secret_key=${{ secrets.AWS_B_SECRET_KEY }}" \
+            -backend-config="region=us-east-1"
+
+      # -------------------------
+      # 4. Terraform Apply (A + B + C)
+      # -------------------------
+      - name: Terraform Apply
+        run: |
+          terraform apply -auto-approve \
+            -var="aws_a_access_key=${{ secrets.AWS_A_ACCESS_KEY }}" \
+            -var="aws_a_secret_key=${{ secrets.AWS_A_SECRET_KEY }}" \
+            -var="aws_b_access_key=${{ secrets.AWS_B_ACCESS_KEY }}" \
+            -var="aws_b_secret_key=${{ secrets.AWS_B_SECRET_KEY }}" \
+            -var="aws_c_access_key=${{ secrets.AWS_C_ACCESS_KEY }}" \
+            -var="aws_c_secret_key=${{ secrets.AWS_C_SECRET_KEY }}" \
+            -var="public_key=${{ secrets.PUBLIC_KEY }}"
