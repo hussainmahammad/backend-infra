@@ -1,1 +1,8 @@
-
+- name: Install cloudflared
+  shell: |
+    curl -fsSL https://pkg.cloudflare.com/cloudflared.repo \
+    | tee /etc/apt/sources.list.d/cloudflared.list
+    apt update
+    apt install -y cloudflared
+  args:
+    executable: /bin/bash
