@@ -1,4 +1,4 @@
-- name: Create app directory
+- name: Create base directory
   file:
     path: "{{ app_dir }}"
     state: directory
@@ -12,12 +12,14 @@
     version: "{{ branch }}"
     force: yes
 
+# 🔥 IMPORTANT: run inside backend folder
 - name: Install dependencies
   npm:
-    path: "{{ app_dir }}"
+    path: "{{ backend_path }}"
 
 - name: Restart app with PM2
   shell: |
     pm2 delete {{ app_name }} || true
+    cd {{ backend_path }}
     pm2 start {{ start_file }} --name {{ app_name }}
     pm2 save
