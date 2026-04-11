@@ -44,21 +44,22 @@ jobs:
           echo "EC2_IP=$IP" >> $GITHUB_ENV
 
       # -------------------------
-      # 5. Setup SSH Private Key
+      # 5. Setup SSH Private Key (FIXED)
       # -------------------------
       - name: Setup SSH Key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.PRIVATE_KEY }}" > ~/.ssh/key.pem
+          echo "${{ secrets.PRIVATE_KEY }}" | sed 's/\\n/\n/g' > ~/.ssh/key.pem
           chmod 600 ~/.ssh/key.pem
+          chmod 700 ~/.ssh
 
       # -------------------------
-      # 6. Generate Ansible Inventory
+      # 6. Generate Ansible Inventory (FIXED USER)
       # -------------------------
       - name: Generate Inventory
         run: |
           echo "[app_A]" > ansible/inventory.ini
-          echo "$EC2_IP ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/key.pem" >> ansible/inventory.ini
+          echo "$EC2_IP ansible_user=ec2-user ansible_ssh_private_key_file=~/.ssh/key.pem" >> ansible/inventory.ini
 
       # -------------------------
       # 7. Install Ansible
