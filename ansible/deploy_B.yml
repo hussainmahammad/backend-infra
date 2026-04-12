@@ -1,1 +1,6 @@
+- name: Setup Worker Node (Account B)
+  hosts: app_B
+  become: yes
 
+  roles:
+    - worker_B
