@@ -91,4 +91,4 @@ jobs:
       - name: Run Ansible
         working-directory: ansible
         run: |
-          ansible-playbook deploy.yml
+          ansible-playbook deploy_A.yml
