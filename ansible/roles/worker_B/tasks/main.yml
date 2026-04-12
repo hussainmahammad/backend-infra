@@ -1,1 +1,133 @@
+# -------------------------
+# 1. Install base packages
+# -------------------------
+- name: Install base packages
+  yum:
+    name:
+      - git
+      - curl
+      - unzip
+      - docker
+      - java-17-amazon-corretto
+      - ansible
+      - awscli
+      - jq
+      - sshpass
+    state: present
 
+# -------------------------
+# 2. Install Node.js 18
+# -------------------------
+- name: Add NodeSource repo
+  shell: |
+    curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
+  args:
+    executable: /bin/bash
+
+- name: Install Node.js
+  yum:
+    name: nodejs
+    state: present
+
+# -------------------------
+# 3. Start Docker
+# -------------------------
+- name: Enable and start Docker
+  systemd:
+    name: docker
+    state: started
+    enabled: yes
+
+# -------------------------
+# 4. Create Jenkins user
+# -------------------------
+- name: Create jenkins user
+  user:
+    name: jenkins
+    shell: /bin/bash
+    create_home: yes
+
+# -------------------------
+# 5. Add jenkins to docker group
+# -------------------------
+- name: Add jenkins to docker group
+  user:
+    name: jenkins
+    groups: docker
+    append: yes
+
+# -------------------------
+# 6. Install Terraform
+# -------------------------
+- name: Download Terraform
+  get_url:
+    url: https://releases.hashicorp.com/terraform/1.14.4/terraform_1.14.4_linux_amd64.zip
+    dest: /tmp/terraform.zip
+
+- name: Unzip Terraform
+  unarchive:
+    src: /tmp/terraform.zip
+    dest: /usr/local/bin/
+    remote_src: yes
+
+- name: Make Terraform executable
+  file:
+    path: /usr/local/bin/terraform
+    mode: '0755'
+
+# -------------------------
+# 7. Install kubectl
+# -------------------------
+- name: Download kubectl
+  get_url:
+    url: https://dl.k8s.io/release/v1.30.0/bin/linux/amd64/kubectl
+    dest: /usr/local/bin/kubectl
+
+- name: Set kubectl permission
+  file:
+    path: /usr/local/bin/kubectl
+    mode: '0755'
+
+# -------------------------
+# 8. Install eksctl
+# -------------------------
+- name: Download eksctl
+  get_url:
+    url: https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz
+    dest: /tmp/eksctl.tar.gz
+
+- name: Extract eksctl
+  unarchive:
+    src: /tmp/eksctl.tar.gz
+    dest: /tmp/
+    remote_src: yes
+
+- name: Move eksctl
+  command: mv /tmp/eksctl /usr/local/bin/
+
+# -------------------------
+# 9. Install Helm
+# -------------------------
+- name: Download Helm
+  get_url:
+    url: https://get.helm.sh/helm-v3.15.0-linux-amd64.tar.gz
+    dest: /tmp/helm.tar.gz
+
+- name: Extract Helm
+  unarchive:
+    src: /tmp/helm.tar.gz
+    dest: /tmp/
+    remote_src: yes
+
+- name: Move Helm binary
+  command: mv /tmp/linux-amd64/helm /usr/local/bin/helm
+
+# -------------------------
+# 10. Fix permissions for Jenkins home
+# -------------------------
+- name: Ensure jenkins home ownership
+  file:
+    path: /home/jenkins
+    owner: jenkins
+    group: jenkins
+    recurse: yes
