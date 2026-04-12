@@ -57,7 +57,26 @@
     append: yes
 
 # -------------------------
-# 6. Install Terraform
+# 6. Setup SSH for Jenkins user (CRITICAL)
+# -------------------------
+- name: Create .ssh directory
+  file:
+    path: /home/jenkins/.ssh
+    state: directory
+    owner: jenkins
+    group: jenkins
+    mode: '0700'
+
+- name: Add public key to authorized_keys
+  copy:
+    content: "{{ lookup('env', 'PUBLIC_KEY') }}"
+    dest: /home/jenkins/.ssh/authorized_keys
+    owner: jenkins
+    group: jenkins
+    mode: '0600'
+
+# -------------------------
+# 7. Install Terraform
 # -------------------------
 - name: Download Terraform
   get_url:
@@ -70,13 +89,13 @@
     dest: /usr/local/bin/
     remote_src: yes
 
-- name: Make Terraform executable
+- name: Ensure Terraform executable
   file:
     path: /usr/local/bin/terraform
     mode: '0755'
 
 # -------------------------
-# 7. Install kubectl
+# 8. Install kubectl
 # -------------------------
 - name: Download kubectl
   get_url:
@@ -89,7 +108,7 @@
     mode: '0755'
 
 # -------------------------
-# 8. Install eksctl
+# 9. Install eksctl
 # -------------------------
 - name: Download eksctl
   get_url:
@@ -102,11 +121,15 @@
     dest: /tmp/
     remote_src: yes
 
-- name: Move eksctl
-  command: mv /tmp/eksctl /usr/local/bin/
+- name: Move eksctl binary
+  copy:
+    src: /tmp/eksctl
+    dest: /usr/local/bin/eksctl
+    remote_src: yes
+    mode: '0755'
 
 # -------------------------
-# 9. Install Helm
+# 10. Install Helm
 # -------------------------
 - name: Download Helm
   get_url:
@@ -120,10 +143,14 @@
     remote_src: yes
 
 - name: Move Helm binary
-  command: mv /tmp/linux-amd64/helm /usr/local/bin/helm
+  copy:
+    src: /tmp/linux-amd64/helm
+    dest: /usr/local/bin/helm
+    remote_src: yes
+    mode: '0755'
 
 # -------------------------
-# 10. Fix permissions for Jenkins home
+# 11. Fix permissions for Jenkins home
 # -------------------------
 - name: Ensure jenkins home ownership
   file:
