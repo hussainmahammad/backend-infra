@@ -35,12 +35,13 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y jq
 
       # -------------------------
-      # 4. Get EC2 Public IP (Account B)
+      # 4. Get EC2 Public IP (Account B) ✅ FIXED
       # -------------------------
       - name: Get EC2 Public IP
         working-directory: terraform
         run: |
-          IP=$(terraform output -json | jq -r '.account_b.value.worker_public_ip')
+          IP=$(terraform output -json | jq -r '.account_b.value.agent_public_ip')
+          echo "Extracted IP: $IP"
           echo "EC2_IP=$IP" >> $GITHUB_ENV
 
       # -------------------------
