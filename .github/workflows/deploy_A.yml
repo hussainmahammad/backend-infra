@@ -44,7 +44,16 @@ jobs:
           echo "EC2_IP=$IP" >> $GITHUB_ENV
 
       # -------------------------
-      # 5. Setup SSH Private Key (FIXED)
+      # 5. Get Worker Private IP (Account B) ✅ ADDED
+      # -------------------------
+      - name: Get Worker Private IP
+        working-directory: terraform
+        run: |
+          WIP=$(terraform output -json | jq -r '.account_b.value.agent_private_ip')
+          echo "WORKER_IP=$WIP" >> $GITHUB_ENV
+
+      # -------------------------
+      # 6. Setup SSH Private Key
       # -------------------------
       - name: Setup SSH Key
         run: |
@@ -54,15 +63,20 @@ jobs:
           chmod 700 ~/.ssh
 
       # -------------------------
-      # 6. Generate Ansible Inventory (FIXED USER)
+      # 7. Generate Ansible Inventory (UPDATED)
       # -------------------------
       - name: Generate Inventory
         run: |
           echo "[app_A]" > ansible/inventory.ini
           echo "$EC2_IP ansible_user=ec2-user ansible_ssh_private_key_file=~/.ssh/key.pem" >> ansible/inventory.ini
 
+          echo "" >> ansible/inventory.ini
+          echo "[all:vars]" >> ansible/inventory.ini
+          echo "worker_private_ip=$WORKER_IP" >> ansible/inventory.ini
+          echo "private_key=${{ secrets.PRIVATE_KEY }}" >> ansible/inventory.ini
+
       # -------------------------
-      # 7. Install Ansible
+      # 8. Install Ansible
       # -------------------------
       - name: Install Ansible
         run: |
@@ -70,7 +84,7 @@ jobs:
           sudo apt install -y ansible
 
       # -------------------------
-      # 8. Pull Git LFS (Jenkins Backup)
+      # 9. Pull Git LFS (Jenkins Backup)
       # -------------------------
       - name: Pull Git LFS
         run: |
@@ -78,7 +92,7 @@ jobs:
           git lfs pull
 
       # -------------------------
-      # 9. Wait for EC2 (VERY IMPORTANT)
+      # 10. Wait for EC2
       # -------------------------
       - name: Wait for EC2 to be ready
         run: |
@@ -86,7 +100,7 @@ jobs:
           sleep 60
 
       # -------------------------
-      # 10. Run Ansible Deploy
+      # 11. Run Ansible Deploy
       # -------------------------
       - name: Run Ansible
         working-directory: ansible
