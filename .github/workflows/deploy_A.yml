@@ -62,6 +62,9 @@ jobs:
           chmod 600 ~/.ssh/key.pem
           chmod 700 ~/.ssh
 
+          # FIX: avoid host key error
+          ssh-keyscan -H $EC2_IP >> ~/.ssh/known_hosts
+
       # -------------------------
       # 7. Generate Ansible Inventory
       # -------------------------
@@ -73,7 +76,6 @@ jobs:
           echo "" >> ansible/inventory.ini
           echo "[all:vars]" >> ansible/inventory.ini
           echo "worker_private_ip=$WORKER_IP" >> ansible/inventory.ini
-          echo "private_key=${{ secrets.PRIVATE_KEY }}" >> ansible/inventory.ini
 
       # -------------------------
       # 8. Install Ansible
@@ -104,4 +106,5 @@ jobs:
       # -------------------------
       - name: Run Ansible
         run: |
-          ansible-playbook -i ansible/inventory.ini "ansible/ deploy_A.yml"
+          ansible-playbook -i ansible/inventory.ini "ansible/ deploy_A.yml" \
+          -e "private_key=${{ secrets.PRIVATE_KEY }}"
