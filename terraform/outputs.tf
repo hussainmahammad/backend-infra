@@ -15,6 +15,7 @@ output "account_b" {
     agent_sg_id   = aws_security_group.jenkins_agent_sg.id
     agent_instance_id = aws_instance.build_node.id
     agent_public_ip = aws_instance.build_node.public_ip
+    agent_private_ip  = aws_instance.build_node.private_ip
   }
 }
 
