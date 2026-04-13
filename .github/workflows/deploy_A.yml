@@ -103,6 +103,5 @@ jobs:
       # 11. Run Ansible Deploy (FINAL FIX)
       # -------------------------
       - name: Run Ansible
-        working-directory: ansible
         run: |
-          ansible-playbook deploy_A.yml
+          ansible-playbook ansible/deploy_A.yml
