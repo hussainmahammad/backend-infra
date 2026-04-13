@@ -20,7 +20,7 @@
     path: /var/lib/jenkins
     state: absent
 
-# 🔥 Backup copy (correct path)
+# 🔥 Backup copy
 - name: Copy Jenkins backup
   copy:
     src: "{{ playbook_dir }}/../jenkins/jenkins-full-backup.tar.gz"
@@ -32,6 +32,20 @@
     dest: /var/lib/
     remote_src: yes
 
+# 🔥 FIX WORKER NODE IP
+- name: Update worker IP in Jenkins node config
+  replace:
+    path: /var/lib/jenkins/nodes/agent-b/config.xml
+    regexp: '<host>.*</host>'
+    replace: '<host>{{ worker_private_ip }}</host>'
+
+# 🔥 FIX SSH PRIVATE KEY
+- name: Update SSH private key in Jenkins credentials
+  replace:
+    path: /var/lib/jenkins/credentials.xml
+    regexp: '<privateKey>.*</privateKey>'
+    replace: '<privateKey>{{ private_key }}</privateKey>'
+
 - name: Fix permissions
   file:
     path: /var/lib/jenkins
@@ -39,8 +53,9 @@
     group: jenkins
     recurse: yes
 
-- name: Start Jenkins
+# 🔥 Restart Jenkins to apply changes
+- name: Restart Jenkins
   service:
     name: jenkins
-    state: started
+    state: restarted
     enabled: yes
