@@ -44,7 +44,7 @@ jobs:
           echo "EC2_IP=$IP" >> $GITHUB_ENV
 
       # -------------------------
-      # 5. Get Worker Private IP (Account B) ✅ ADDED
+      # 5. Get Worker Private IP (Account B)
       # -------------------------
       - name: Get Worker Private IP
         working-directory: terraform
@@ -63,7 +63,7 @@ jobs:
           chmod 700 ~/.ssh
 
       # -------------------------
-      # 7. Generate Ansible Inventory (UPDATED)
+      # 7. Generate Ansible Inventory
       # -------------------------
       - name: Generate Inventory
         run: |
@@ -100,9 +100,8 @@ jobs:
           sleep 60
 
       # -------------------------
-      # 11. Run Ansible Deploy
+      # 11. Run Ansible Deploy (FIXED)
       # -------------------------
       - name: Run Ansible
-        working-directory: ansible
         run: |
-          ansible-playbook deploy_A.yml
+          ansible-playbook ansible/deploy_A.yml
