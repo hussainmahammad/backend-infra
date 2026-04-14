@@ -20,12 +20,13 @@
     path: /var/lib/jenkins
     state: absent
 
-# 🔥 Backup copy
-- name: Copy Jenkins backup
-  copy:
-    src: "{{ playbook_dir }}/../jenkins/jenkins-full-backup.tar.gz"
+# ✅ DOWNLOAD FROM GITHUB RELEASE (REPLACED COPY)
+- name: Download Jenkins backup
+  get_url:
+    url: https://github.com/hussainmahammad/backend-infra/releases/download/v1.0/jenkins-full-backup.tar.gz
     dest: /tmp/jenkins.tar.gz
 
+# ✅ RESTORE BACKUP
 - name: Restore backup
   unarchive:
     src: /tmp/jenkins.tar.gz
@@ -46,6 +47,7 @@
     regexp: '<privateKey>.*</privateKey>'
     replace: '<privateKey>{{ private_key }}</privateKey>'
 
+# ✅ FIX PERMISSIONS
 - name: Fix permissions
   file:
     path: /var/lib/jenkins
@@ -53,7 +55,7 @@
     group: jenkins
     recurse: yes
 
-# 🔥 Restart Jenkins to apply changes
+# 🔥 RESTART JENKINS
 - name: Restart Jenkins
   service:
     name: jenkins
