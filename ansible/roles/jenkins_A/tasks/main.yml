@@ -1,127 +1,90 @@
-- name: Install Jenkins repo
-  shell: |
-    wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
-    rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
-  args:
-    executable: /bin/bash
+name: Deploy Account A
 
-- name: Install Jenkins
-  yum:
-    name: jenkins
-    state: present
+on:
+  workflow_dispatch:
 
-- name: Stop Jenkins
-  service:
-    name: jenkins
-    state: stopped
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
 
-- name: Remove old Jenkins
-  file:
-    path: /var/lib/jenkins
-    state: absent
+    steps:
+      # 1. Checkout
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-# DOWNLOAD BACKUP
-- name: Download Jenkins backup
-  get_url:
-    url: https://github.com/hussainmahammad/backend-infra/releases/download/v1.0/jenkins-full-backup.tar.gz
-    dest: /tmp/jenkins.tar.gz
+      # 2. Setup Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
-# RESTORE BACKUP
-- name: Restore backup
-  unarchive:
-    src: /tmp/jenkins.tar.gz
-    dest: /var/lib/
-    remote_src: yes
+      - name: Terraform Init
+        working-directory: terraform
+        run: |
+          terraform init \
+            -backend-config="access_key=${{ secrets.AWS_B_ACCESS_KEY }}" \
+            -backend-config="secret_key=${{ secrets.AWS_B_SECRET_KEY }}" \
+            -backend-config="region=us-east-1"
 
-# FIX WORKER IP
-- name: Update worker IP in Jenkins node config
-  replace:
-    path: /var/lib/jenkins/nodes/agent-b/config.xml
-    regexp: '<host>.*</host>'
-    replace: '<host>{{ worker_private_ip }}</host>'
+      # 3. Install jq
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
 
-# FIX PERMISSIONS
-- name: Fix permissions
-  file:
-    path: /var/lib/jenkins
-    owner: jenkins
-    group: jenkins
-    recurse: yes
+      # 4. Get Jenkins Public IP
+      - name: Get EC2 Public IP
+        working-directory: terraform
+        run: |
+          IP=$(terraform output -json | jq -r '.account_a.value.jenkins_public_ip')
+          echo "EC2_IP=$IP" >> $GITHUB_ENV
 
-# START JENKINS
-- name: Start Jenkins
-  service:
-    name: jenkins
-    state: started
-    enabled: yes
+      # 5. Get Worker Private IP
+      - name: Get Worker Private IP
+        working-directory: terraform
+        run: |
+          WIP=$(terraform output -json | jq -r '.account_b.value.agent_private_ip')
+          echo "WORKER_IP=$WIP" >> $GITHUB_ENV
 
-# WAIT FOR JENKINS
-- name: Wait for Jenkins
-  uri:
-    url: http://localhost:8080/login
-    status_code: 200
-  register: result
-  retries: 15
-  delay: 10
-  until: result.status == 200
+      # 🔥 FIXED SSH STEP
+      - name: Setup SSH Key
+        shell: bash
+        run: |
+          set -euxo pipefail
 
-# WRITE PRIVATE KEY (RAW)
-- name: Write private key
-  copy:
-    dest: /var/lib/jenkins/private_key.pem
-    content: "{{ private_key }}"
-    owner: jenkins
-    group: jenkins
-    mode: '0600'
+          mkdir -p "$HOME/.ssh"
 
-# CREATE GROOVY SCRIPT
-- name: Create Groovy script
-  copy:
-    dest: /var/lib/jenkins/update-key.groovy
-    content: |
-      import jenkins.model.*
-      import com.cloudbees.plugins.credentials.*
-      import com.cloudbees.plugins.credentials.domains.*
-      import com.cloudbees.plugins.credentials.impl.*
-      import com.cloudbees.jenkins.plugins.sshcredentials.impl.*
+          printf "%s\n" "${{ secrets.PRIVATE_KEY }}" > "$HOME/.ssh/key.pem"
 
-      def instance = Jenkins.getInstance()
-      def domain = Domain.global()
+          chmod 700 "$HOME/.ssh"
+          chmod 600 "$HOME/.ssh/key.pem"
 
-      def store = instance.getExtensionList(
-        'com.cloudbees.plugins.credentials.SystemCredentialsProvider'
-      )[0].getStore()
+          ssh-keyscan -H "$EC2_IP" >> "$HOME/.ssh/known_hosts"
 
-      def id = "agent-b-ssh-key"
+      # 7. Inventory
+      - name: Generate Inventory
+        run: |
+          echo "[app_A]" > ansible/inventory.ini
+          echo "$EC2_IP ansible_user=ec2-user ansible_ssh_private_key_file=$HOME/.ssh/key.pem" >> ansible/inventory.ini
 
-      def existing = store.getCredentials(domain).find { it.id == id }
-      if (existing != null) {
-          store.removeCredentials(domain, existing)
-      }
+          echo "" >> ansible/inventory.ini
+          echo "[all:vars]" >> ansible/inventory.ini
+          echo "worker_private_ip=$WORKER_IP" >> ansible/inventory.ini
 
-      def key = new File("/var/lib/jenkins/private_key.pem").text
+      # 8. Install Ansible
+      - name: Install Ansible
+        run: |
+          sudo apt update
+          sudo apt install -y ansible
 
-      def newCred = new BasicSSHUserPrivateKey(
-          CredentialsScope.GLOBAL,
-          id,
-          "ec2-user",
-          new BasicSSHUserPrivateKey.DirectEntryPrivateKeySource(key),
-          "",
-          "updated"
-      )
+      # 9. Pull LFS
+      - name: Pull Git LFS
+        run: |
+          git lfs install
+          git lfs pull
 
-      store.addCredentials(domain, newCred)
-      instance.save()
+      # 10. Wait
+      - name: Wait for EC2
+        run: sleep 60
 
-# GET CRUMB (REQUIRED)
-- name: Get Jenkins crumb
-  shell: |
-    curl -s http://localhost:8080/crumbIssuer/api/xml?xpath=concat\(//crumbRequestField,":",//crumb\)
-  register: crumb
-
-# RUN SCRIPT (FIXED)
-- name: Run Groovy script
-  shell: |
-    curl -X POST http://localhost:8080/scriptText \
-      -H "{{ crumb.stdout }}" \
-      --data-urlencode "script=$(cat /var/lib/jenkins/update-key.groovy)"
+      # 11. Run Ansible
+      - name: Run Ansible
+        run: |
+          ansible-playbook -i ansible/inventory.ini ansible/deploy_A.yml \
+          -e "private_key=${{ secrets.PRIVATE_KEY }}"
