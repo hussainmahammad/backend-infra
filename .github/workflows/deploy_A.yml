@@ -100,9 +100,10 @@ jobs:
           sleep 60
 
       # -------------------------
-      # 11. Run Ansible Deploy
+      # 11. Run Ansible Deploy (ONLY FIX HERE)
       # -------------------------
       - name: Run Ansible
         run: |
-          ansible-playbook -i ansible/inventory.ini ansible/deploy_A.yml \
-          -e "private_key=${{ secrets.PRIVATE_KEY }}"
+          FIXED_KEY=$(echo "${{ secrets.PRIVATE_KEY }}" | sed 's/\\n/\n/g')
+          ansible-playbook -i ansible/inventory.ini "ansible/ deploy_A.yml" \
+          -e "private_key=$FIXED_KEY"
