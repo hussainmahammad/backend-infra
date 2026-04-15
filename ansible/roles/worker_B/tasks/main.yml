@@ -57,7 +57,7 @@
     append: yes
 
 # -------------------------
-# 6. Setup SSH for Jenkins user (CRITICAL)
+# 6. Setup SSH for Jenkins user (FIXED)
 # -------------------------
 - name: Create .ssh directory
   file:
@@ -67,13 +67,12 @@
     group: jenkins
     mode: '0700'
 
-- name: Add public key to authorized_keys
-  copy:
-    content: "{{ lookup('env', 'PUBLIC_KEY') }}"
-    dest: /home/jenkins/.ssh/authorized_keys
-    owner: jenkins
-    group: jenkins
-    mode: '0600'
+# 🔥 FIX: use authorized_key module instead of copy
+- name: Add public key properly
+  authorized_key:
+    user: jenkins
+    key: "{{ lookup('env','PUBLIC_KEY') }}"
+    state: present
 
 # -------------------------
 # 7. Install Terraform
