@@ -8,11 +8,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # -------------------------
       # 1. Checkout Repo
+      # -------------------------
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2. Setup Terraform
+      # -------------------------
+      # 2. Setup Terraform (READ ONLY)
+      # -------------------------
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
@@ -24,25 +28,33 @@ jobs:
             -backend-config="secret_key=${{ secrets.AWS_B_SECRET_KEY }}" \
             -backend-config="region=us-east-1"
 
+      # -------------------------
       # 3. Install jq
+      # -------------------------
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
 
-      # 4. Get EC2 Public IP
+      # -------------------------
+      # 4. Get EC2 Public IP (Account A)
+      # -------------------------
       - name: Get EC2 Public IP
         working-directory: terraform
         run: |
           IP=$(terraform output -json | jq -r '.account_a.value.jenkins_public_ip')
           echo "EC2_IP=$IP" >> $GITHUB_ENV
 
-      # 5. Get Worker Private IP
+      # -------------------------
+      # 5. Get Worker Private IP (Account B)
+      # -------------------------
       - name: Get Worker Private IP
         working-directory: terraform
         run: |
           WIP=$(terraform output -json | jq -r '.account_b.value.agent_private_ip')
           echo "WORKER_IP=$WIP" >> $GITHUB_ENV
 
-      # 🔥 FIXED SSH STEP (MAIN ISSUE)
+      # -------------------------
+      # 6. Setup SSH Private Key (FIXED)
+      # -------------------------
       - name: Setup SSH Key
         run: |
           mkdir -p /home/runner/.ssh
@@ -56,7 +68,9 @@ EOF
 
           ssh-keyscan -H $EC2_IP >> /home/runner/.ssh/known_hosts
 
-      # 7. Generate Inventory
+      # -------------------------
+      # 7. Generate Ansible Inventory
+      # -------------------------
       - name: Generate Inventory
         run: |
           echo "[app_A]" > ansible/inventory.ini
@@ -66,23 +80,33 @@ EOF
           echo "[all:vars]" >> ansible/inventory.ini
           echo "worker_private_ip=$WORKER_IP" >> ansible/inventory.ini
 
+      # -------------------------
       # 8. Install Ansible
+      # -------------------------
       - name: Install Ansible
         run: |
           sudo apt update
           sudo apt install -y ansible
 
-      # 9. Pull Git LFS
+      # -------------------------
+      # 9. Pull Git LFS (Jenkins Backup)
+      # -------------------------
       - name: Pull Git LFS
         run: |
           git lfs install
           git lfs pull
 
+      # -------------------------
       # 10. Wait for EC2
-      - name: Wait for EC2
-        run: sleep 60
+      # -------------------------
+      - name: Wait for EC2 to be ready
+        run: |
+          echo "Waiting for EC2 to be ready..."
+          sleep 60
 
-      # 🔥 FIXED KEY PASSING (NO sed / echo)
+      # -------------------------
+      # 11. Run Ansible Deploy (FIXED KEY PASSING)
+      # -------------------------
       - name: Run Ansible
         run: |
           ansible-playbook -i ansible/inventory.ini ansible/deploy_A.yml \
