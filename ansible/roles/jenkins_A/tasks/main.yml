@@ -20,27 +20,27 @@
     path: /var/lib/jenkins
     state: absent
 
-# DOWNLOAD BACKUP
+# ✅ DOWNLOAD FROM GITHUB RELEASE
 - name: Download Jenkins backup
   get_url:
     url: https://github.com/hussainmahammad/backend-infra/releases/download/v1.0/jenkins-full-backup.tar.gz
     dest: /tmp/jenkins.tar.gz
 
-# RESTORE BACKUP
+# ✅ RESTORE BACKUP
 - name: Restore backup
   unarchive:
     src: /tmp/jenkins.tar.gz
     dest: /var/lib/
     remote_src: yes
 
-# FIX WORKER IP
+# 🔥 FIX WORKER NODE IP
 - name: Update worker IP in Jenkins node config
   replace:
     path: /var/lib/jenkins/nodes/agent-b/config.xml
     regexp: '<host>.*</host>'
     replace: '<host>{{ worker_private_ip }}</host>'
 
-# FIX PERMISSIONS
+# ✅ FIX PERMISSIONS
 - name: Fix permissions
   file:
     path: /var/lib/jenkins
@@ -48,15 +48,15 @@
     group: jenkins
     recurse: yes
 
-# START JENKINS
+# 🔥 START JENKINS
 - name: Start Jenkins
   service:
     name: jenkins
     state: started
     enabled: yes
 
-# WAIT FOR JENKINS
-- name: Wait for Jenkins
+# 🔥 WAIT FOR JENKINS
+- name: Wait for Jenkins to be ready
   uri:
     url: http://localhost:8080/login
     status_code: 200
@@ -65,16 +65,7 @@
   delay: 10
   until: result.status == 200
 
-# WRITE PRIVATE KEY
-- name: Write private key
-  copy:
-    dest: /var/lib/jenkins/private_key.pem
-    content: "{{ private_key }}"
-    owner: jenkins
-    group: jenkins
-    mode: '0600'
-
-# CREATE GROOVY SCRIPT
+# 🔥 CREATE GROOVY SCRIPT
 - name: Create Jenkins credential update script
   copy:
     dest: /var/lib/jenkins/update-key.groovy
@@ -99,13 +90,11 @@
           store.removeCredentials(domain, existing)
       }
 
-      def key = new File("/var/lib/jenkins/private_key.pem").text
-
       def newCred = new BasicSSHUserPrivateKey(
           CredentialsScope.GLOBAL,
           id,
           "ec2-user",
-          new BasicSSHUserPrivateKey.DirectEntryPrivateKeySource(key),
+          new BasicSSHUserPrivateKey.DirectEntryPrivateKeySource("""{{ private_key }}"""),
           "",
           "updated"
       )
@@ -113,15 +102,8 @@
       store.addCredentials(domain, newCred)
       instance.save()
 
-# GET CRUMB (REQUIRED)
-- name: Get Jenkins crumb
-  shell: |
-    curl -s http://localhost:8080/crumbIssuer/api/xml?xpath=concat\(//crumbRequestField,":",//crumb\)
-  register: crumb
-
-# RUN SCRIPT (FIXED)
-- name: Run Groovy script
+# 🔥 RUN SCRIPT (FINAL FIX - NO CLI, NO AUTH ISSUE)
+- name: Run Groovy via Jenkins script console
   shell: |
     curl -X POST http://localhost:8080/scriptText \
-      -H "{{ crumb.stdout }}" \
       --data-urlencode "script=$(cat /var/lib/jenkins/update-key.groovy)"
