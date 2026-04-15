@@ -65,7 +65,21 @@
   delay: 10
   until: result.status == 200
 
-# 🔥 CREATE GROOVY SCRIPT (FIXED NEWLINE ISSUE)
+# 🔥 WRITE PRIVATE KEY TO FILE (FINAL FIX)
+- name: Write private key properly
+  copy:
+    dest: /var/lib/jenkins/private_key.pem
+    content: "{{ private_key }}"
+    owner: jenkins
+    group: jenkins
+    mode: '0600'
+
+# 🔥 FIX NEWLINES IN FILE
+- name: Fix key formatting
+  shell: |
+    sed -i 's/\\n/\n/g' /var/lib/jenkins/private_key.pem
+
+# 🔥 CREATE GROOVY SCRIPT (READ FROM FILE)
 - name: Create Jenkins credential update script
   copy:
     dest: /var/lib/jenkins/update-key.groovy
@@ -90,8 +104,8 @@
           store.removeCredentials(domain, existing)
       }
 
-      // 🔥 FIX: convert \n → real newlines
-      def key = """{{ private_key }}""".replace("\\n", "\n")
+      // 🔥 FINAL FIX: read clean key from file
+      def key = new File("/var/lib/jenkins/private_key.pem").text
 
       def newCred = new BasicSSHUserPrivateKey(
           CredentialsScope.GLOBAL,
