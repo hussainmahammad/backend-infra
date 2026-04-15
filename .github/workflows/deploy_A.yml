@@ -32,7 +32,7 @@ jobs:
       # 3. Install jq
       # -------------------------
       - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
+        run: sudo apt-get install -y jq
 
       # -------------------------
       # 4. Get EC2 Public IP (Account A)
@@ -53,15 +53,17 @@ jobs:
           echo "WORKER_IP=$WIP" >> $GITHUB_ENV
 
       # -------------------------
-      # 6. Setup SSH Private Key (FIXED)
+      # 6. Setup SSH Private Key
       # -------------------------
       - name: Setup SSH Key
         run: |
           mkdir -p ~/.ssh
-          printf "%s" "${{ secrets.PRIVATE_KEY }}" > ~/.ssh/key.pem
+          echo "${{ secrets.PRIVATE_KEY }}" | sed 's/\\n/\n/g' > ~/.ssh/key.pem
           chmod 600 ~/.ssh/key.pem
           chmod 700 ~/.ssh
-          ssh-keyscan -H $EC2_IP >> ~/.ssh/known_hosts || true
+
+          # FIX: avoid host key error
+          ssh-keyscan -H $EC2_IP >> ~/.ssh/known_hosts
 
       # -------------------------
       # 7. Generate Ansible Inventory
@@ -69,7 +71,7 @@ jobs:
       - name: Generate Inventory
         run: |
           echo "[app_A]" > ansible/inventory.ini
-          echo "$EC2_IP ansible_user=ec2-user ansible_ssh_private_key_file=/home/runner/.ssh/key.pem" >> ansible/inventory.ini
+          echo "$EC2_IP ansible_user=ec2-user ansible_ssh_private_key_file=~/.ssh/key.pem" >> ansible/inventory.ini
 
           echo "" >> ansible/inventory.ini
           echo "[all:vars]" >> ansible/inventory.ini
