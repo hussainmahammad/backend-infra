@@ -65,7 +65,7 @@
   delay: 10
   until: result.status == 200
 
-# 🔥 CREATE GROOVY SCRIPT (FIXED NEWLINE ISSUE)
+# 🔥 CREATE GROOVY SCRIPT
 - name: Create Jenkins credential update script
   copy:
     dest: /var/lib/jenkins/update-key.groovy
@@ -90,14 +90,11 @@
           store.removeCredentials(domain, existing)
       }
 
-      // 🔥 FIX: convert \n → real newlines
-      def key = """{{ private_key }}""".replace("\\n", "\n")
-
       def newCred = new BasicSSHUserPrivateKey(
           CredentialsScope.GLOBAL,
           id,
           "ec2-user",
-          new BasicSSHUserPrivateKey.DirectEntryPrivateKeySource(key),
+          new BasicSSHUserPrivateKey.DirectEntryPrivateKeySource("""{{ private_key }}"""),
           "",
           "updated"
       )
@@ -105,7 +102,7 @@
       store.addCredentials(domain, newCred)
       instance.save()
 
-# 🔥 RUN SCRIPT (SCRIPT CONSOLE)
+# 🔥 RUN SCRIPT (FINAL FIX - NO CLI, NO AUTH ISSUE)
 - name: Run Groovy via Jenkins script console
   shell: |
     curl -X POST http://localhost:8080/scriptText \
