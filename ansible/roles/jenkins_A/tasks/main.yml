@@ -33,6 +33,15 @@
     dest: /var/lib/
     remote_src: yes
 
+# 🔥 ENSURE NODE DIRECTORY EXISTS
+- name: Create node directory
+  file:
+    path: /var/lib/jenkins/nodes/agent-b
+    state: directory
+    owner: jenkins
+    group: jenkins
+    mode: '0755'
+
 # 🔥 CREATE .ssh DIRECTORY
 - name: Create Jenkins .ssh directory
   file:
@@ -51,7 +60,15 @@
     group: jenkins
     mode: '0600'
 
-# 🔥 FULL NODE CONFIG FIX (NO credentialsId)
+# 🔥 ADD KNOWN HOST (IMPORTANT)
+- name: Add worker to known_hosts
+  shell: |
+    ssh-keyscan -H {{ worker_private_ip }} >> /var/lib/jenkins/.ssh/known_hosts
+  become: true
+  become_user: jenkins
+  ignore_errors: yes
+
+# 🔥 FULL NODE CONFIG (FORCE CLEAN CONFIG)
 - name: Replace node config completely
   copy:
     dest: /var/lib/jenkins/nodes/agent-b/config.xml
@@ -76,7 +93,7 @@
         <nodeProperties/>
       </slave>
 
-# ✅ FIX PERMISSIONS
+# 🔥 FIX PERMISSIONS
 - name: Fix permissions
   file:
     path: /var/lib/jenkins
@@ -101,7 +118,12 @@
   delay: 10
   until: result.status == 200
 
-# 🔥 RESTART JENKINS (FINAL)
+# 🔥 RELOAD NODE CONFIG (CRITICAL FIX)
+- name: Reload Jenkins configuration
+  shell: |
+    curl -X POST http://localhost:8080/reload
+
+# 🔥 FINAL RESTART
 - name: Restart Jenkins
   service:
     name: jenkins
