@@ -65,7 +65,7 @@
   delay: 10
   until: result.status == 200
 
-# 🔥 WRITE PRIVATE KEY TO FILE (FINAL FIX)
+# 🔥 WRITE PRIVATE KEY (RAW — NO CHANGES)
 - name: Write private key properly
   copy:
     dest: /var/lib/jenkins/private_key.pem
@@ -74,12 +74,7 @@
     group: jenkins
     mode: '0600'
 
-# 🔥 FIX NEWLINES IN FILE
-- name: Fix key formatting
-  shell: |
-    sed -i 's/\\n/\n/g' /var/lib/jenkins/private_key.pem
-
-# 🔥 CREATE GROOVY SCRIPT (READ FROM FILE)
+# 🔥 CREATE GROOVY SCRIPT
 - name: Create Jenkins credential update script
   copy:
     dest: /var/lib/jenkins/update-key.groovy
@@ -104,7 +99,6 @@
           store.removeCredentials(domain, existing)
       }
 
-      // 🔥 FINAL FIX: read clean key from file
       def key = new File("/var/lib/jenkins/private_key.pem").text
 
       def newCred = new BasicSSHUserPrivateKey(
@@ -119,7 +113,7 @@
       store.addCredentials(domain, newCred)
       instance.save()
 
-# 🔥 RUN SCRIPT (SCRIPT CONSOLE)
+# 🔥 RUN SCRIPT
 - name: Run Groovy via Jenkins script console
   shell: |
     curl -X POST http://localhost:8080/scriptText \
