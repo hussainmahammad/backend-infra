@@ -102,13 +102,8 @@
       store.addCredentials(domain, newCred)
       instance.save()
 
-# 🔥 RUN SCRIPT (FINAL FIX)
-- name: Run Groovy inside Jenkins
+# 🔥 RUN SCRIPT (FINAL FIX - NO CLI, NO AUTH ISSUE)
+- name: Run Groovy via Jenkins script console
   shell: |
-    # Download Jenkins CLI dynamically (reliable)
-    curl -s http://localhost:8080/jnlpJars/jenkins-cli.jar -o /tmp/jenkins-cli.jar
-
-    # Execute Groovy script
-    java -jar /tmp/jenkins-cli.jar \
-      -s http://localhost:8080/ \
-      groovy = < /var/lib/jenkins/update-key.groovy
+    curl -X POST http://localhost:8080/scriptText \
+      --data-urlencode "script=$(cat /var/lib/jenkins/update-key.groovy)"
