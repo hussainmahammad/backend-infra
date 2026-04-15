@@ -20,27 +20,27 @@
     path: /var/lib/jenkins
     state: absent
 
-# ✅ DOWNLOAD FROM GITHUB RELEASE
+# DOWNLOAD BACKUP
 - name: Download Jenkins backup
   get_url:
     url: https://github.com/hussainmahammad/backend-infra/releases/download/v1.0/jenkins-full-backup.tar.gz
     dest: /tmp/jenkins.tar.gz
 
-# ✅ RESTORE BACKUP
+# RESTORE BACKUP
 - name: Restore backup
   unarchive:
     src: /tmp/jenkins.tar.gz
     dest: /var/lib/
     remote_src: yes
 
-# 🔥 FIX WORKER NODE IP
+# FIX WORKER IP
 - name: Update worker IP in Jenkins node config
   replace:
     path: /var/lib/jenkins/nodes/agent-b/config.xml
     regexp: '<host>.*</host>'
     replace: '<host>{{ worker_private_ip }}</host>'
 
-# ✅ FIX PERMISSIONS
+# FIX PERMISSIONS
 - name: Fix permissions
   file:
     path: /var/lib/jenkins
@@ -48,15 +48,15 @@
     group: jenkins
     recurse: yes
 
-# 🔥 START JENKINS
+# START JENKINS
 - name: Start Jenkins
   service:
     name: jenkins
     state: started
     enabled: yes
 
-# 🔥 WAIT FOR JENKINS
-- name: Wait for Jenkins to be ready
+# WAIT FOR JENKINS
+- name: Wait for Jenkins
   uri:
     url: http://localhost:8080/login
     status_code: 200
@@ -65,8 +65,8 @@
   delay: 10
   until: result.status == 200
 
-# 🔥 WRITE PRIVATE KEY (RAW)
-- name: Write private key properly
+# WRITE PRIVATE KEY (RAW)
+- name: Write private key
   copy:
     dest: /var/lib/jenkins/private_key.pem
     content: "{{ private_key }}"
@@ -74,8 +74,8 @@
     group: jenkins
     mode: '0600'
 
-# 🔥 CREATE GROOVY SCRIPT
-- name: Create Jenkins credential update script
+# CREATE GROOVY SCRIPT
+- name: Create Groovy script
   copy:
     dest: /var/lib/jenkins/update-key.groovy
     content: |
@@ -113,8 +113,15 @@
       store.addCredentials(domain, newCred)
       instance.save()
 
-# 🔥 RUN SCRIPT
-- name: Run Groovy via Jenkins script console
+# GET CRUMB (REQUIRED)
+- name: Get Jenkins crumb
+  shell: |
+    curl -s http://localhost:8080/crumbIssuer/api/xml?xpath=concat\(//crumbRequestField,":",//crumb\)
+  register: crumb
+
+# RUN SCRIPT (FIXED)
+- name: Run Groovy script
   shell: |
     curl -X POST http://localhost:8080/scriptText \
+      -H "{{ crumb.stdout }}" \
       --data-urlencode "script=$(cat /var/lib/jenkins/update-key.groovy)"
