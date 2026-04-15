@@ -61,7 +61,7 @@ jobs:
           printf "%s" "${{ secrets.PRIVATE_KEY }}" > ~/.ssh/key.pem
           chmod 600 ~/.ssh/key.pem
           chmod 700 ~/.ssh
-          ssh-keyscan -H $EC2_IP >> ~/.ssh/known_hosts
+          ssh-keyscan -H $EC2_IP >> ~/.ssh/known_hosts || true
 
       # -------------------------
       # 7. Generate Ansible Inventory
@@ -100,7 +100,7 @@ jobs:
           sleep 60
 
       # -------------------------
-      # 11. Run Ansible Deploy (FIXED)
+      # 11. Run Ansible Deploy
       # -------------------------
       - name: Run Ansible
         run: |
