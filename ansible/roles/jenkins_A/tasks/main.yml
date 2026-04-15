@@ -20,7 +20,7 @@
     path: /var/lib/jenkins
     state: absent
 
-# ✅ DOWNLOAD FROM GITHUB RELEASE
+# ✅ DOWNLOAD FROM GITHUB RELEASE (REPLACED COPY)
 - name: Download Jenkins backup
   get_url:
     url: https://github.com/hussainmahammad/backend-infra/releases/download/v1.0/jenkins-full-backup.tar.gz
@@ -40,6 +40,13 @@
     regexp: '<host>.*</host>'
     replace: '<host>{{ worker_private_ip }}</host>'
 
+# 🔥 FIX SSH PRIVATE KEY
+- name: Update SSH private key in Jenkins credentials
+  replace:
+    path: /var/lib/jenkins/credentials.xml
+    regexp: '<privateKey>.*</privateKey>'
+    replace: '<privateKey>{{ private_key }}</privateKey>'
+
 # ✅ FIX PERMISSIONS
 - name: Fix permissions
   file:
@@ -48,62 +55,9 @@
     group: jenkins
     recurse: yes
 
-# 🔥 START JENKINS
-- name: Start Jenkins
+# 🔥 RESTART JENKINS
+- name: Restart Jenkins
   service:
     name: jenkins
-    state: started
+    state: restarted
     enabled: yes
-
-# 🔥 WAIT FOR JENKINS
-- name: Wait for Jenkins to be ready
-  uri:
-    url: http://localhost:8080/login
-    status_code: 200
-  register: result
-  retries: 15
-  delay: 10
-  until: result.status == 200
-
-# 🔥 CREATE GROOVY SCRIPT
-- name: Create Jenkins credential update script
-  copy:
-    dest: /var/lib/jenkins/update-key.groovy
-    content: |
-      import jenkins.model.*
-      import com.cloudbees.plugins.credentials.*
-      import com.cloudbees.plugins.credentials.domains.*
-      import com.cloudbees.plugins.credentials.impl.*
-      import com.cloudbees.jenkins.plugins.sshcredentials.impl.*
-
-      def instance = Jenkins.getInstance()
-      def domain = Domain.global()
-
-      def store = instance.getExtensionList(
-        'com.cloudbees.plugins.credentials.SystemCredentialsProvider'
-      )[0].getStore()
-
-      def id = "agent-b-ssh-key"
-
-      def existing = store.getCredentials(domain).find { it.id == id }
-      if (existing != null) {
-          store.removeCredentials(domain, existing)
-      }
-
-      def newCred = new BasicSSHUserPrivateKey(
-          CredentialsScope.GLOBAL,
-          id,
-          "ec2-user",
-          new BasicSSHUserPrivateKey.DirectEntryPrivateKeySource("""{{ private_key }}"""),
-          "",
-          "updated"
-      )
-
-      store.addCredentials(domain, newCred)
-      instance.save()
-
-# 🔥 RUN SCRIPT (FINAL FIX - NO CLI, NO AUTH ISSUE)
-- name: Run Groovy via Jenkins script console
-  shell: |
-    curl -X POST http://localhost:8080/scriptText \
-      --data-urlencode "script=$(cat /var/lib/jenkins/update-key.groovy)"
