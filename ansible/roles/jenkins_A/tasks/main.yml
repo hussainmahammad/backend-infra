@@ -20,36 +20,21 @@
     path: /var/lib/jenkins
     state: absent
 
-# ✅ DOWNLOAD BACKUP
+# DOWNLOAD BACKUP
 - name: Download Jenkins backup
   get_url:
     url: https://github.com/hussainmahammad/backend-infra/releases/download/v1.0/jenkins-full-backup.tar.gz
     dest: /tmp/jenkins.tar.gz
 
-# ✅ RESTORE BACKUP
+# RESTORE BACKUP
 - name: Restore backup
   unarchive:
     src: /tmp/jenkins.tar.gz
     dest: /var/lib/
     remote_src: yes
 
-# 🔥 DELETE OLD NODE (CRITICAL FIX)
-- name: Remove old node completely
-  file:
-    path: /var/lib/jenkins/nodes/agent-b
-    state: absent
-
-# 🔥 CREATE NODE DIRECTORY
-- name: Create node directory
-  file:
-    path: /var/lib/jenkins/nodes/agent-b
-    state: directory
-    owner: jenkins
-    group: jenkins
-    mode: '0755'
-
-# 🔥 CREATE .ssh DIRECTORY
-- name: Create Jenkins .ssh directory
+# SSH SETUP
+- name: Create .ssh directory
   file:
     path: /var/lib/jenkins/.ssh
     state: directory
@@ -57,8 +42,7 @@
     group: jenkins
     mode: '0700'
 
-# 🔥 COPY PRIVATE KEY
-- name: Copy private key for Jenkins SSH
+- name: Copy private key
   copy:
     dest: /var/lib/jenkins/.ssh/id_rsa
     content: "{{ private_key }}"
@@ -66,7 +50,6 @@
     group: jenkins
     mode: '0600'
 
-# 🔥 ADD KNOWN HOST
 - name: Add worker to known_hosts
   shell: |
     ssh-keyscan -H {{ worker_private_ip }} >> /var/lib/jenkins/.ssh/known_hosts
@@ -74,32 +57,7 @@
   become_user: jenkins
   ignore_errors: yes
 
-# 🔥 CREATE CLEAN NODE CONFIG (NO credentialsId)
-- name: Replace node config completely
-  copy:
-    dest: /var/lib/jenkins/nodes/agent-b/config.xml
-    owner: jenkins
-    group: jenkins
-    mode: '0644'
-    content: |
-      <slave>
-        <name>agent-b</name>
-        <description></description>
-        <remoteFS>/home/jenkins</remoteFS>
-        <numExecutors>2</numExecutors>
-        <mode>NORMAL</mode>
-        <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
-        <launcher class="hudson.plugins.sshslaves.SSHLauncher">
-          <host>{{ worker_private_ip }}</host>
-          <port>22</port>
-          <credentialsId></credentialsId>
-          <sshHostKeyVerificationStrategy class="hudson.plugins.sshslaves.verifiers.NonVerifyingKeyVerificationStrategy"/>
-        </launcher>
-        <label></label>
-        <nodeProperties/>
-      </slave>
-
-# 🔥 FIX PERMISSIONS
+# FIX PERMISSIONS
 - name: Fix permissions
   file:
     path: /var/lib/jenkins
@@ -107,15 +65,15 @@
     group: jenkins
     recurse: yes
 
-# 🔥 START JENKINS
+# START JENKINS
 - name: Start Jenkins
   service:
     name: jenkins
     state: started
     enabled: yes
 
-# 🔥 WAIT FOR JENKINS
-- name: Wait for Jenkins to be ready
+# WAIT FOR JENKINS
+- name: Wait for Jenkins
   uri:
     url: http://localhost:8080/login
     status_code: 200
@@ -124,12 +82,62 @@
   delay: 10
   until: result.status == 200
 
-# 🔥 FORCE RELOAD (IMPORTANT)
-- name: Reload Jenkins config
+# 🔥 CREATE NODE VIA GROOVY (REAL FIX)
+- name: Create node properly via Jenkins API
   shell: |
-    curl -X POST http://localhost:8080/reload
+    cat <<EOF > /tmp/node.groovy
+    import jenkins.model.*
+    import hudson.slaves.*
+    import hudson.plugins.sshslaves.*
 
-# 🔥 FINAL RESTART
+    def j = Jenkins.instance
+
+    // remove old node if exists
+    def n = j.getNode("agent-b")
+    if (n != null) {
+        j.removeNode(n)
+    }
+
+    def launcher = new SSHLauncher(
+        "{{ worker_private_ip }}",
+        22,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        60,
+        10,
+        15,
+        new NonVerifyingKeyVerificationStrategy(),
+        false,
+        false,
+        null,
+        null,
+        null
+    )
+
+    def node = new DumbSlave(
+        "agent-b",
+        "agent-b",
+        "/home/jenkins",
+        "2",
+        Node.Mode.NORMAL,
+        "",
+        launcher,
+        new RetentionStrategy.Always(),
+        new LinkedList()
+    )
+
+    j.addNode(node)
+    j.save()
+    EOF
+
+    curl -X POST http://localhost:8080/scriptText \
+      --data-urlencode "script=$(cat /tmp/node.groovy)"
+
+# FINAL RESTART
 - name: Restart Jenkins
   service:
     name: jenkins
