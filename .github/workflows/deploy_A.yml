@@ -53,20 +53,15 @@ jobs:
           echo "WORKER_IP=$WIP" >> $GITHUB_ENV
 
       # -------------------------
-      # 6. Setup SSH Private Key (FIXED)
+      # 6. Setup SSH Private Key (FIXED SAFE)
       # -------------------------
       - name: Setup SSH Key
         run: |
-          mkdir -p /home/runner/.ssh
-
-          cat > /home/runner/.ssh/key.pem << 'EOF'
-${{ secrets.PRIVATE_KEY }}
-EOF
-
-          chmod 700 /home/runner/.ssh
-          chmod 600 /home/runner/.ssh/key.pem
-
-          ssh-keyscan -H $EC2_IP >> /home/runner/.ssh/known_hosts
+          mkdir -p ~/.ssh
+          printf "%s\n" "${{ secrets.PRIVATE_KEY }}" > ~/.ssh/key.pem
+          chmod 600 ~/.ssh/key.pem
+          chmod 700 ~/.ssh
+          ssh-keyscan -H $EC2_IP >> ~/.ssh/known_hosts
 
       # -------------------------
       # 7. Generate Ansible Inventory
@@ -105,7 +100,7 @@ EOF
           sleep 60
 
       # -------------------------
-      # 11. Run Ansible Deploy (FIXED KEY PASSING)
+      # 11. Run Ansible Deploy (FIXED)
       # -------------------------
       - name: Run Ansible
         run: |
