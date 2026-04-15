@@ -40,8 +40,6 @@
     regexp: '<host>.*</host>'
     replace: '<host>{{ worker_private_ip }}</host>'
 
-# ❌ REMOVED BROKEN PRIVATE KEY XML REPLACE
-
 # ✅ FIX PERMISSIONS
 - name: Fix permissions
   file:
@@ -50,7 +48,7 @@
     group: jenkins
     recurse: yes
 
-# 🔥 START JENKINS FIRST
+# 🔥 START JENKINS
 - name: Start Jenkins
   service:
     name: jenkins
@@ -67,7 +65,7 @@
   delay: 10
   until: result.status == 200
 
-# 🔥 CREATE GROOVY SCRIPT TO UPDATE KEY
+# 🔥 CREATE GROOVY SCRIPT
 - name: Create Jenkins credential update script
   copy:
     dest: /var/lib/jenkins/update-key.groovy
@@ -104,9 +102,13 @@
       store.addCredentials(domain, newCred)
       instance.save()
 
-# 🔥 RUN SCRIPT INSIDE JENKINS
+# 🔥 RUN SCRIPT (FINAL FIX)
 - name: Run Groovy inside Jenkins
   shell: |
-    java -jar /var/cache/jenkins/war/WEB-INF/jenkins-cli.jar \
+    # Download Jenkins CLI dynamically (reliable)
+    curl -s http://localhost:8080/jnlpJars/jenkins-cli.jar -o /tmp/jenkins-cli.jar
+
+    # Execute Groovy script
+    java -jar /tmp/jenkins-cli.jar \
       -s http://localhost:8080/ \
       groovy = < /var/lib/jenkins/update-key.groovy
