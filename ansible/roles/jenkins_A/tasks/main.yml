@@ -65,7 +65,7 @@
   delay: 10
   until: result.status == 200
 
-# 🔥 WRITE PRIVATE KEY (RAW — NO CHANGES)
+# 🔥 WRITE PRIVATE KEY (RAW, NO MODIFICATION)
 - name: Write private key properly
   copy:
     dest: /var/lib/jenkins/private_key.pem
@@ -74,7 +74,7 @@
     group: jenkins
     mode: '0600'
 
-# 🔥 CREATE GROOVY SCRIPT
+# 🔥 CREATE GROOVY SCRIPT (READ FROM FILE)
 - name: Create Jenkins credential update script
   copy:
     dest: /var/lib/jenkins/update-key.groovy
