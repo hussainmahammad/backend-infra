@@ -33,7 +33,13 @@
     dest: /var/lib/
     remote_src: yes
 
-# 🔥 ENSURE NODE DIRECTORY EXISTS
+# 🔥 DELETE OLD NODE (CRITICAL FIX)
+- name: Remove old node completely
+  file:
+    path: /var/lib/jenkins/nodes/agent-b
+    state: absent
+
+# 🔥 CREATE NODE DIRECTORY
 - name: Create node directory
   file:
     path: /var/lib/jenkins/nodes/agent-b
@@ -51,7 +57,7 @@
     group: jenkins
     mode: '0700'
 
-# 🔥 COPY PRIVATE KEY (FINAL FIX)
+# 🔥 COPY PRIVATE KEY
 - name: Copy private key for Jenkins SSH
   copy:
     dest: /var/lib/jenkins/.ssh/id_rsa
@@ -60,7 +66,7 @@
     group: jenkins
     mode: '0600'
 
-# 🔥 ADD KNOWN HOST (IMPORTANT)
+# 🔥 ADD KNOWN HOST
 - name: Add worker to known_hosts
   shell: |
     ssh-keyscan -H {{ worker_private_ip }} >> /var/lib/jenkins/.ssh/known_hosts
@@ -68,7 +74,7 @@
   become_user: jenkins
   ignore_errors: yes
 
-# 🔥 FULL NODE CONFIG (FORCE CLEAN CONFIG)
+# 🔥 CREATE CLEAN NODE CONFIG (NO credentialsId)
 - name: Replace node config completely
   copy:
     dest: /var/lib/jenkins/nodes/agent-b/config.xml
@@ -118,8 +124,8 @@
   delay: 10
   until: result.status == 200
 
-# 🔥 RELOAD NODE CONFIG (CRITICAL FIX)
-- name: Reload Jenkins configuration
+# 🔥 FORCE RELOAD (IMPORTANT)
+- name: Reload Jenkins config
   shell: |
     curl -X POST http://localhost:8080/reload
 
