@@ -35,7 +35,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y jq
 
       # -------------------------
-      # 4. Get EC2 Public IP (Account B) ✅ FIXED
+      # 4. Get EC2 Public IP (Account B)
       # -------------------------
       - name: Get EC2 Public IP
         working-directory: terraform
@@ -79,9 +79,9 @@ jobs:
           sleep 60
 
       # -------------------------
-      # 9. Run Ansible (Account B)
+      # 9. Run Ansible (Account B) ✅ FIXED
       # -------------------------
       - name: Run Ansible
         working-directory: ansible
         run: |
-          ansible-playbook deploy_B.yml
+          PUBLIC_KEY="${{ secrets.PUBLIC_KEY }}" ansible-playbook deploy_B.yml
