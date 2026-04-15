@@ -20,7 +20,7 @@
     path: /var/lib/jenkins
     state: absent
 
-# ✅ DOWNLOAD FROM GITHUB RELEASE
+# ✅ DOWNLOAD BACKUP
 - name: Download Jenkins backup
   get_url:
     url: https://github.com/hussainmahammad/backend-infra/releases/download/v1.0/jenkins-full-backup.tar.gz
@@ -33,14 +33,50 @@
     dest: /var/lib/
     remote_src: yes
 
-# 🔥 FIX WORKER NODE IP
-- name: Update worker IP in Jenkins node config
-  replace:
-    path: /var/lib/jenkins/nodes/agent-b/config.xml
-    regexp: '<host>.*</host>'
-    replace: '<host>{{ worker_private_ip }}</host>'
+# 🔥 CREATE .ssh DIRECTORY
+- name: Create Jenkins .ssh directory
+  file:
+    path: /var/lib/jenkins/.ssh
+    state: directory
+    owner: jenkins
+    group: jenkins
+    mode: '0700'
 
-# ✅ FIX PERMISSIONS BEFORE START
+# 🔥 COPY PRIVATE KEY (FINAL FIX)
+- name: Copy private key for Jenkins SSH
+  copy:
+    dest: /var/lib/jenkins/.ssh/id_rsa
+    content: "{{ private_key }}"
+    owner: jenkins
+    group: jenkins
+    mode: '0600'
+
+# 🔥 FULL NODE CONFIG FIX (NO credentialsId)
+- name: Replace node config completely
+  copy:
+    dest: /var/lib/jenkins/nodes/agent-b/config.xml
+    owner: jenkins
+    group: jenkins
+    mode: '0644'
+    content: |
+      <slave>
+        <name>agent-b</name>
+        <description></description>
+        <remoteFS>/home/jenkins</remoteFS>
+        <numExecutors>2</numExecutors>
+        <mode>NORMAL</mode>
+        <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
+        <launcher class="hudson.plugins.sshslaves.SSHLauncher">
+          <host>{{ worker_private_ip }}</host>
+          <port>22</port>
+          <credentialsId></credentialsId>
+          <sshHostKeyVerificationStrategy class="hudson.plugins.sshslaves.verifiers.NonVerifyingKeyVerificationStrategy"/>
+        </launcher>
+        <label></label>
+        <nodeProperties/>
+      </slave>
+
+# ✅ FIX PERMISSIONS
 - name: Fix permissions
   file:
     path: /var/lib/jenkins
@@ -65,61 +101,7 @@
   delay: 10
   until: result.status == 200
 
-# 🔥 WRITE PRIVATE KEY CLEANLY
-- name: Save private key
-  copy:
-    dest: /var/lib/jenkins/key.pem
-    content: "{{ private_key }}"
-    owner: jenkins
-    group: jenkins
-    mode: '0600'
-
-# 🔥 CREATE GROOVY SCRIPT (REAL FIX)
-- name: Create Jenkins credential script
-  copy:
-    dest: /var/lib/jenkins/update-cred.groovy
-    content: |
-      import jenkins.model.*
-      import com.cloudbees.plugins.credentials.*
-      import com.cloudbees.plugins.credentials.domains.*
-      import com.cloudbees.plugins.credentials.impl.*
-      import com.cloudbees.jenkins.plugins.sshcredentials.impl.*
-
-      def instance = Jenkins.instance
-      def domain = Domain.global()
-
-      def store = instance.getExtensionList(
-        'com.cloudbees.plugins.credentials.SystemCredentialsProvider'
-      )[0].getStore()
-
-      def id = "agent-b-ssh-key"
-
-      def existing = store.getCredentials(domain).find { it.id == id }
-      if (existing != null) {
-          store.removeCredentials(domain, existing)
-      }
-
-      def key = new File("/var/lib/jenkins/key.pem").text
-
-      def newCred = new BasicSSHUserPrivateKey(
-          CredentialsScope.GLOBAL,
-          id,
-          "ec2-user",
-          new BasicSSHUserPrivateKey.DirectEntryPrivateKeySource(key),
-          "",
-          "updated"
-      )
-
-      store.addCredentials(domain, newCred)
-      instance.save()
-
-# 🔥 EXECUTE GROOVY SCRIPT
-- name: Run Groovy script
-  shell: |
-    curl -X POST http://localhost:8080/scriptText \
-      --data-urlencode "script=$(cat /var/lib/jenkins/update-cred.groovy)"
-
-# 🔥 RESTART JENKINS
+# 🔥 RESTART JENKINS (FINAL)
 - name: Restart Jenkins
   service:
     name: jenkins
