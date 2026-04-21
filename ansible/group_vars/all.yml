@@ -1,12 +1,12 @@
 app_name: backend_A
 
-# clone full repo here
-app_dir: /opt/opt_repo
+# clone full repo here (FIXED)
+app_dir: /opt
 
 repo_url: "https://github.com/hussainmahammad/opt.git"
 branch: "main"
 
-# actual app path inside repo
+# actual app path inside repo (same, now resolves correctly)
 backend_path: "{{ app_dir }}/apps/backend"
 
 start_file: "server.js"
