@@ -23,9 +23,20 @@
   npm:
     path: "{{ backend_path }}"
 
-- name: Restart app with PM2
+# 🔥 FIXED PM2 STEP (ONLY CHANGE)
+- name: Start backend with PM2 (robust)
   shell: |
-    pm2 delete {{ app_name }} || true
     cd {{ backend_path }}
-    pm2 start {{ start_file }} --name {{ app_name }}
+
+    echo "Installing dependencies..."
+    npm install
+
+    echo "Starting backend..."
+    pm2 delete {{ app_name }} || true
+    pm2 start {{ start_file }} --name {{ app_name }} || exit 1
+
+    echo "Waiting for app..."
+    sleep 5
+
+    pm2 status
     pm2 save
