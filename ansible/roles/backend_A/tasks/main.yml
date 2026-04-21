@@ -18,12 +18,17 @@
     version: "{{ branch }}"
     force: yes
 
-# 🔥 IMPORTANT: run inside backend folder
+# 🔥 Install dependencies
 - name: Install dependencies
   npm:
     path: "{{ backend_path }}"
 
-# 🔥 FIXED PM2 STEP (ONLY CHANGE)
+# 🔥 Enable PM2 startup (AUTO START AFTER REBOOT)
+- name: Enable PM2 startup on boot
+  shell: |
+    pm2 startup systemd -u ec2-user --hp /home/ec2-user
+
+# 🔥 Start backend properly
 - name: Start backend with PM2 (robust)
   shell: |
     cd {{ backend_path }}
@@ -39,4 +44,6 @@
     sleep 5
 
     pm2 status
+
+    echo "Saving PM2 process list..."
     pm2 save
