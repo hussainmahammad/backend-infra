@@ -12,7 +12,22 @@
       - awscli
       - jq
       - sshpass
-      - packer
+    state: present
+
+# -------------------------
+# 🔥 ADD HASHICORP REPO (FOR PACKER)
+# -------------------------
+- name: Install yum-utils
+  yum:
+    name: yum-utils
+    state: present
+
+- name: Add HashiCorp repo
+  command: yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+
+- name: Install Packer
+  yum:
+    name: packer
     state: present
 
 # -------------------------
@@ -68,7 +83,6 @@
     group: jenkins
     mode: '0700'
 
-# 🔥 FIX: use authorized_key module instead of copy
 - name: Add public key properly
   authorized_key:
     user: jenkins
