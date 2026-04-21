@@ -12,6 +12,7 @@
       - awscli
       - jq
       - sshpass
+      - packer
     state: present
 
 # -------------------------
