@@ -211,16 +211,18 @@ resource "aws_dynamodb_table_item" "app_hm001" {
   table_name = aws_dynamodb_table.applications.name
   hash_key   = "appId"
 
+  depends_on = [aws_dynamodb_table.applications]
+
   item = jsonencode({
-    appId              = "HM001"
-    appName            = "petcart"
-    createdAt          = "2025-01-18T10:00:00Z"
-    deployJobName      = "deploy-petcart"
-    destroyJobName     = "destroy-petcart"
-    ec2Support         = true
-    eksEc2Support      = true
-    eksFargateSupport  = true
-    genericSupport     = false
+    appId = { S = "HM001" }
+    appName = { S = "petcart" }
+    createdAt = { S = "2025-01-18T10:00:00Z" }
+    deployJobName = { S = "deploy-petcart" }
+    destroyJobName = { S = "destroy-petcart" }
+    ec2Support = { BOOL = true }
+    eksEc2Support = { BOOL = true }
+    eksFargateSupport = { BOOL = true }
+    genericSupport = { BOOL = false }
   })
 }
 
@@ -229,16 +231,18 @@ resource "aws_dynamodb_table_item" "app_hm002" {
   table_name = aws_dynamodb_table.applications.name
   hash_key   = "appId"
 
+  depends_on = [aws_dynamodb_table.applications]
+
   item = jsonencode({
-    appId              = "HM002"
-    appName            = "admin-petcart"
-    createdAt          = "2025-02-28T11:00:00Z"
-    deployJobName      = "deploy-admin-petcart"
-    destroyJobName     = "destroy-admin-petcart"
-    ec2Support         = true
-    eksEc2Support      = true
-    eksFargateSupport  = true
-    genericSupport     = false
+    appId = { S = "HM002" }
+    appName = { S = "admin-petcart" }
+    createdAt = { S = "2025-02-28T11:00:00Z" }
+    deployJobName = { S = "deploy-admin-petcart" }
+    destroyJobName = { S = "destroy-admin-petcart" }
+    ec2Support = { BOOL = true }
+    eksEc2Support = { BOOL = true }
+    eksFargateSupport = { BOOL = true }
+    genericSupport = { BOOL = false }
   })
 }
 
@@ -247,16 +251,18 @@ resource "aws_dynamodb_table_item" "app_hm004" {
   table_name = aws_dynamodb_table.applications.name
   hash_key   = "appId"
 
+  depends_on = [aws_dynamodb_table.applications]
+
   item = jsonencode({
-    appId              = "HM004"
-    appName            = "pdf-tools"
-    createdAt          = "2026-02-22T11:00:00Z"
-    deployJobName      = "deploy-pdf-tools"
-    destroyJobName     = "destroy-pdf-tools"
-    ec2Support         = false
-    eksEc2Support      = false
-    eksFargateSupport  = false
-    genericSupport     = true
+    appId = { S = "HM004" }
+    appName = { S = "pdf-tools" }
+    createdAt = { S = "2026-02-22T11:00:00Z" }
+    deployJobName = { S = "deploy-pdf-tools" }
+    destroyJobName = { S = "destroy-pdf-tools" }
+    ec2Support = { BOOL = false }
+    eksEc2Support = { BOOL = false }
+    eksFargateSupport = { BOOL = false }
+    genericSupport = { BOOL = true }
   })
 }
 
@@ -265,15 +271,17 @@ resource "aws_dynamodb_table_item" "app_hm007" {
   table_name = aws_dynamodb_table.applications.name
   hash_key   = "appId"
 
+  depends_on = [aws_dynamodb_table.applications]
+
   item = jsonencode({
-    appId              = "HM007"
-    appName            = "weblancehub"
-    createdAt          = "2025-02-25T11:00:00Z"
-    deployJobName      = "deploy-weblancehub"
-    destroyJobName     = "destroy-weblancehub"
-    ec2Support         = true
-    eksEc2Support      = true
-    eksFargateSupport  = true
-    genericSupport     = false
+    appId = { S = "HM007" }
+    appName = { S = "weblancehub" }
+    createdAt = { S = "2025-02-25T11:00:00Z" }
+    deployJobName = { S = "deploy-weblancehub" }
+    destroyJobName = { S = "destroy-weblancehub" }
+    ec2Support = { BOOL = true }
+    eksEc2Support = { BOOL = true }
+    eksFargateSupport = { BOOL = true }
+    genericSupport = { BOOL = false }
   })
 }
