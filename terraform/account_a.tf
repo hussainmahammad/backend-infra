@@ -200,3 +200,80 @@ resource "aws_dynamodb_table" "deployments" {
     type = "S"
   }
 }
+
+
+# ===============================
+# DynamoDB Application Seed Data
+# ===============================
+
+resource "aws_dynamodb_table_item" "app_hm001" {
+  provider   = aws.a
+  table_name = aws_dynamodb_table.applications.name
+  hash_key   = "appId"
+
+  item = jsonencode({
+    appId              = "HM001"
+    appName            = "petcart"
+    createdAt          = "2025-01-18T10:00:00Z"
+    deployJobName      = "deploy-petcart"
+    destroyJobName     = "destroy-petcart"
+    ec2Support         = true
+    eksEc2Support      = true
+    eksFargateSupport  = true
+    genericSupport     = false
+  })
+}
+
+resource "aws_dynamodb_table_item" "app_hm002" {
+  provider   = aws.a
+  table_name = aws_dynamodb_table.applications.name
+  hash_key   = "appId"
+
+  item = jsonencode({
+    appId              = "HM002"
+    appName            = "admin-petcart"
+    createdAt          = "2025-02-28T11:00:00Z"
+    deployJobName      = "deploy-admin-petcart"
+    destroyJobName     = "destroy-admin-petcart"
+    ec2Support         = true
+    eksEc2Support      = true
+    eksFargateSupport  = true
+    genericSupport     = false
+  })
+}
+
+resource "aws_dynamodb_table_item" "app_hm004" {
+  provider   = aws.a
+  table_name = aws_dynamodb_table.applications.name
+  hash_key   = "appId"
+
+  item = jsonencode({
+    appId              = "HM004"
+    appName            = "pdf-tools"
+    createdAt          = "2026-02-22T11:00:00Z"
+    deployJobName      = "deploy-pdf-tools"
+    destroyJobName     = "destroy-pdf-tools"
+    ec2Support         = false
+    eksEc2Support      = false
+    eksFargateSupport  = false
+    genericSupport     = true
+  })
+}
+
+resource "aws_dynamodb_table_item" "app_hm007" {
+  provider   = aws.a
+  table_name = aws_dynamodb_table.applications.name
+  hash_key   = "appId"
+
+  item = jsonencode({
+    appId              = "HM007"
+    appName            = "weblancehub"
+    createdAt          = "2025-02-25T11:00:00Z"
+    deployJobName      = "deploy-weblancehub"
+    destroyJobName     = "destroy-weblancehub"
+    ec2Support         = true
+    eksEc2Support      = true
+    eksFargateSupport  = true
+    genericSupport     = false
+  })
+}
