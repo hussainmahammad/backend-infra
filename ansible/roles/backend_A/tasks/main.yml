@@ -1,4 +1,9 @@
-- name: Create base directory
+- name: Clean old backend folder
+  file:
+    path: /opt/apps
+    state: absent
+
+- name: Ensure base directory exists
   file:
     path: "{{ app_dir }}"
     state: directory
