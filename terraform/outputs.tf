@@ -33,3 +33,7 @@ output "peering" {
     a_c = aws_vpc_peering_connection.a_c.id
   }
 }
+
+output "account_c_role_arn" {
+  value = aws_iam_role.account_c_role.arn
+}
