@@ -18,6 +18,17 @@
     version: "{{ branch }}"
     force: yes
 
+# 🔥🔥🔥 CRITICAL FIX (THIS WAS MISSING)
+- name: Update ACCOUNT_C_ROLE_ARN in .env
+  lineinfile:
+    path: "{{ backend_path }}/.env"
+    regexp: '^ACCOUNT_C_ROLE_ARN='
+    line: "ACCOUNT_C_ROLE_ARN={{ account_c_role_arn }}"
+    create: yes
+    owner: ec2-user
+    group: ec2-user
+    mode: '0644'
+
 # 🔥 Install dependencies
 - name: Install dependencies
   npm:
@@ -38,7 +49,7 @@
 
     echo "Starting backend..."
     pm2 delete {{ app_name }} || true
-    pm2 start {{ start_file }} --name {{ app_name }} || exit 1
+    pm2 start {{ start_file }} --name {{ app_name }} --update-env || exit 1
 
     echo "Waiting for app..."
     sleep 5
