@@ -17,6 +17,8 @@
     dest: "{{ app_dir }}"
     version: "{{ branch }}"
     force: yes
+  become: true
+  become_user: ec2-user   # ✅ FIX
 
 # 🔥🔥🔥 CRITICAL FIX (THIS WAS MISSING)
 - name: Update ACCOUNT_C_ROLE_ARN in .env
@@ -33,11 +35,14 @@
 - name: Install dependencies
   npm:
     path: "{{ backend_path }}"
+  become: true
+  become_user: ec2-user   # ✅ FIX
 
 # 🔥 Enable PM2 startup (AUTO START AFTER REBOOT)
 - name: Enable PM2 startup on boot
   shell: |
     pm2 startup systemd -u ec2-user --hp /home/ec2-user
+  become: true   # ✅ MUST stay root
 
 # 🔥 Start backend properly
 - name: Start backend with PM2 (robust)
@@ -58,3 +63,5 @@
 
     echo "Saving PM2 process list..."
     pm2 save
+  become: true
+  become_user: ec2-user   # ✅ FIX
